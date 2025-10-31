@@ -5,6 +5,7 @@ import { useChat } from 'ai/react';
 import { useGameStore } from '@/lib/store';
 import { parseCommand, resolveCombat, generateEventText } from '@/lib/ai';
 import { getAdjacentRoom } from '@/lib/roomGenerator';
+import * as SFX from '@/lib/soundEffects';
 
 export function TextInput() {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -56,10 +57,14 @@ export function TextInput() {
             gameState.currentEnemy
           );
 
+          SFX.playSwordSwing();
+
           if (result.playerHit) {
+            setTimeout(() => SFX.playHitSound(), 100);
             const newEnemy = { ...gameState.currentEnemy, hp: gameState.currentEnemy.hp - result.playerDamage };
             if (newEnemy.hp <= 0) {
               addToLog(`You defeated the ${gameState.currentEnemy.name}!`);
+              setTimeout(() => SFX.playMonsterDeath(), 200);
               endCombat(true);
             } else {
               addToLog(`You deal ${result.playerDamage} damage to the ${gameState.currentEnemy.name}!`);
@@ -69,6 +74,7 @@ export function TextInput() {
           }
 
           if (result.enemyHit && gameState.currentEnemy.hp > 0) {
+            setTimeout(() => SFX.playPlayerDamage(), 300);
             takeDamage(result.enemyDamage);
           }
         } else {
@@ -86,6 +92,7 @@ export function TextInput() {
         if (intent.direction && gameState.currentRoom.doors[intent.direction]) {
           const newRoom = getAdjacentRoom(gameState.currentRoom, intent.direction, gameState.player.level);
           if (newRoom) {
+            SFX.playDoorOpen();
             enterRoom(newRoom);
             addToLog(generateEventText(newRoom.type));
           }
@@ -98,8 +105,10 @@ export function TextInput() {
         if (intent.target === 'chest') {
           const chest = gameState.currentRoom.entities.find((e) => e.type === 'chest');
           if (chest && Array.isArray(chest.data)) {
+            SFX.playChestOpen();
             chest.data.forEach((item) => {
               addItem(item);
+              setTimeout(() => SFX.playItemCollect(), 200);
               if (item.type === 'treasure') {
                 addGold(item.value);
               }

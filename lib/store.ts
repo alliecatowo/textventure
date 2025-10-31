@@ -126,6 +126,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
         get().addToLog(`LEVEL UP! You are now level ${newLevel}!`);
 
+        // Play level up sound
+        import('@/lib/soundEffects').then(SFX => SFX.playLevelUp());
+
         return {
           player: {
             ...state.player,

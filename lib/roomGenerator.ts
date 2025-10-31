@@ -4,8 +4,45 @@ import { MONSTERS } from './constants';
 import { generateLoot } from './lootGenerator';
 
 // Grid-based room layout (like Minecraft chunks)
-export const ROOM_SIZE = 16; // 16x16 tiles
 export const TILE_SIZE = 2; // meters per tile
+
+// Room dimensions vary based on room type
+export function getRoomDimensions(roomType: string, seed: number): { width: number; depth: number } {
+  const noise = Math.abs(getNoise(seed, seed * 2, seed * 3));
+
+  switch (roomType) {
+    case 'combat':
+      // Combat rooms: medium to large, more square-ish
+      return {
+        width: Math.floor(12 + noise * 8), // 12-20 tiles
+        depth: Math.floor(10 + noise * 6), // 10-16 tiles
+      };
+    case 'treasure':
+      // Treasure rooms: smaller, intimate
+      return {
+        width: Math.floor(8 + noise * 4), // 8-12 tiles
+        depth: Math.floor(6 + noise * 4), // 6-10 tiles
+      };
+    case 'merchant':
+      // Merchant rooms: wide and shallow
+      return {
+        width: Math.floor(14 + noise * 6), // 14-20 tiles
+        depth: Math.floor(8 + noise * 4), // 8-12 tiles
+      };
+    case 'event':
+      // Event rooms: unique shapes
+      return {
+        width: Math.floor(10 + noise * 10), // 10-20 tiles
+        depth: Math.floor(8 + noise * 8), // 8-16 tiles
+      };
+    default: // empty
+      // Empty rooms: varied
+      return {
+        width: Math.floor(10 + noise * 8), // 10-18 tiles
+        depth: Math.floor(8 + noise * 6), // 8-14 tiles
+      };
+  }
+}
 
 export interface TileData {
   type: 'floor' | 'wall' | 'door' | 'empty';
@@ -46,19 +83,19 @@ function getRoomType(x: number, y: number, z: number): Room['type'] {
 }
 
 // Generate tile grid for a room
-function generateTiles(roomX: number, roomY: number, roomZ: number): TileData[] {
+function generateTiles(roomX: number, roomY: number, roomZ: number, width: number, depth: number): TileData[] {
   const tiles: TileData[] = [];
 
-  for (let x = 0; x < ROOM_SIZE; x++) {
-    for (let z = 0; z < ROOM_SIZE; z++) {
-      const worldX = roomX * ROOM_SIZE + x;
-      const worldZ = roomZ * ROOM_SIZE + z;
+  for (let x = 0; x < width; x++) {
+    for (let z = 0; z < depth; z++) {
+      const worldX = roomX * width + x;
+      const worldZ = roomZ * depth + z;
 
       // Use noise to determine if it's a wall or floor
       const noise = getNoise(worldX * 0.3, roomY * 0.3, worldZ * 0.3);
 
       // Walls on edges, except for doors
-      const isEdge = x === 0 || x === ROOM_SIZE - 1 || z === 0 || z === ROOM_SIZE - 1;
+      const isEdge = x === 0 || x === width - 1 || z === 0 || z === depth - 1;
 
       let type: TileData['type'] = 'floor';
       let decoration: TileData['decoration'] | undefined;
@@ -66,10 +103,10 @@ function generateTiles(roomX: number, roomY: number, roomZ: number): TileData[] 
       if (isEdge) {
         // Check if this edge tile should be a door
         const isDoorSpot =
-          (x === Math.floor(ROOM_SIZE / 2) && z === 0) || // front door
-          (x === Math.floor(ROOM_SIZE / 2) && z === ROOM_SIZE - 1) || // back door
-          (x === 0 && z === Math.floor(ROOM_SIZE / 2)) || // left door
-          (x === ROOM_SIZE - 1 && z === Math.floor(ROOM_SIZE / 2)); // right door
+          (x === Math.floor(width / 2) && z === 0) || // back door (entrance)
+          (x === Math.floor(width / 2) && z === depth - 1) || // forward door
+          (x === 0 && z === Math.floor(depth / 2)) || // left door
+          (x === width - 1 && z === Math.floor(depth / 2)); // right door
 
         type = isDoorSpot ? 'door' : 'wall';
 
@@ -132,9 +169,11 @@ function generateMonsters(seed: number, roomType: string, playerLevel: number): 
       modelPath: baseMonster.modelPath,
     };
 
-    // Random position in room (avoid edges)
-    const x = (Math.abs(getNoise(monsterSeed, 1, 0)) * (ROOM_SIZE - 4) + 2) * TILE_SIZE;
-    const z = (Math.abs(getNoise(monsterSeed, 2, 0)) * (ROOM_SIZE - 4) + 2) * TILE_SIZE;
+    // Position in back half of room (visible from entrance)
+    const roomWidth = 16; // Approximate
+    const roomDepth = 12;
+    const x = (Math.abs(getNoise(monsterSeed, 1, 0)) * (roomWidth - 8) + 4) * TILE_SIZE;
+    const z = (Math.abs(getNoise(monsterSeed, 2, 0)) * (roomDepth / 2) + roomDepth / 2) * TILE_SIZE;
 
     entities.push({
       id: monster.id,
@@ -161,8 +200,11 @@ function generateChests(seed: number, roomType: string, playerLevel: number): Ro
     const lootCount = Math.floor(Math.abs(getNoise(chestSeed, 0, 0)) * 3) + 1;
     const loot = generateLoot(chestSeed, playerLevel, lootCount);
 
-    const x = (Math.abs(getNoise(chestSeed, 3, 0)) * (ROOM_SIZE - 4) + 2) * TILE_SIZE;
-    const z = (Math.abs(getNoise(chestSeed, 4, 0)) * (ROOM_SIZE - 4) + 2) * TILE_SIZE;
+    // Position in back portion (visible from entrance)
+    const roomWidth = 16;
+    const roomDepth = 12;
+    const x = (Math.abs(getNoise(chestSeed, 3, 0)) * (roomWidth - 8) + 4) * TILE_SIZE;
+    const z = (Math.abs(getNoise(chestSeed, 4, 0)) * (roomDepth / 2) + roomDepth / 2) * TILE_SIZE;
 
     entities.push({
       id: `chest_${chestSeed}`,
@@ -196,8 +238,11 @@ export function generateRoom(
   // Generate seed for this room
   const seed = worldSeed + x * 1000 + y * 100000 + z * 10;
 
+  // Get room dimensions
+  const { width, depth } = getRoomDimensions(roomType, seed);
+
   // Generate tiles
-  const tiles = generateTiles(x, y, z);
+  const tiles = generateTiles(x, y, z, width, depth);
 
   // Determine door positions based on neighboring rooms
   const doors = {
@@ -213,12 +258,12 @@ export function generateRoom(
     ...generateChests(seed, roomType, playerLevel),
   ];
 
-  // Add merchants for merchant rooms
+  // Add merchants for merchant rooms (centered, visible from entrance)
   if (roomType === 'merchant') {
     entities.push({
       id: `merchant_${seed}`,
       type: 'merchant',
-      position: [ROOM_SIZE * TILE_SIZE / 2, 0, ROOM_SIZE * TILE_SIZE / 2],
+      position: [width * TILE_SIZE / 2, 0, depth * TILE_SIZE * 0.7],
       data: 'merchant',
     });
   }
@@ -277,5 +322,7 @@ export function getAdjacentRoom(
 // Get current room tiles for rendering
 export function getRoomTiles(room: Room): TileData[] {
   const [x, y, z] = room.id.split(',').map(Number);
-  return generateTiles(x, y, z);
+  const seed = worldSeed + x * 1000 + y * 100000 + z * 10;
+  const { width, depth } = getRoomDimensions(room.type, seed);
+  return generateTiles(x, y, z, width, depth);
 }

@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import { Room } from './Room';
 import { Entity } from './Entity';
 import { Player } from './Player';
+import { CameraController } from './CameraController';
 import { useGameStore } from '@/lib/store';
 import * as THREE from 'three';
 
@@ -47,6 +48,9 @@ export function Scene() {
 
         {/* Lighter fog */}
         <fog attach="fog" args={['#1a1a1a', 15, 50]} />
+
+        {/* Mouse look controls */}
+        <CameraController />
 
         {/* Scene content */}
         <Suspense fallback={null}>
