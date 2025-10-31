@@ -11,9 +11,9 @@ export function HUD() {
 
   return (
     <div className="fixed top-0 left-0 right-0 p-4 pointer-events-none">
-      <div className="max-w-4xl mx-auto flex justify-between items-start">
+      <div className="max-w-4xl mx-auto flex justify-between items-start gap-4">
         {/* Player Stats */}
-        <div className="bg-black/80 border border-green-500/30 rounded p-4 space-y-2 pointer-events-auto">
+        <div className="bg-black/90 border border-green-500/50 rounded-lg p-4 space-y-2 pointer-events-auto backdrop-blur-sm shadow-lg shadow-green-500/10">
           <div className="text-green-400 font-mono text-sm font-bold">
             LEVEL {player.level}
           </div>
@@ -68,7 +68,7 @@ export function HUD() {
         </div>
 
         {/* Equipment */}
-        <div className="bg-black/80 border border-green-500/30 rounded p-4 space-y-2 pointer-events-auto">
+        <div className="bg-black/90 border border-green-500/50 rounded-lg p-4 space-y-2 pointer-events-auto backdrop-blur-sm shadow-lg shadow-green-500/10">
           <div className="text-green-400 font-mono text-sm font-bold">EQUIPMENT</div>
 
           <div className="text-xs text-green-300 font-mono space-y-1">

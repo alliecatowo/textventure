@@ -17,21 +17,35 @@ export function Scene() {
         shadows
         gl={{ antialias: true }}
         dpr={[1, 2]}
-        camera={{ position: [16, 5, 5], fov: 75 }}
+        camera={{ position: [16, 12, -5], fov: 60, near: 0.1, far: 1000 }}
       >
 
-        {/* Lighting for dungeon atmosphere */}
-        <ambientLight intensity={0.3} />
+        {/* Enhanced lighting for better visibility */}
+        <ambientLight intensity={0.6} />
+
+        {/* Main directional light from above */}
         <directionalLight
-          position={[10, 10, 5]}
-          intensity={0.7}
+          position={[20, 20, 10]}
+          intensity={1.5}
           castShadow
           shadow-mapSize={[2048, 2048]}
+          color="#ffffff"
         />
-        <pointLight position={[16, 10, 16]} intensity={0.5} color="#ff9944" />
 
-        {/* Fog for atmosphere */}
-        <fog attach="fog" args={['#0a0a0a', 10, 50]} />
+        {/* Warm torch-like point lights around the room */}
+        <pointLight position={[8, 8, 8]} intensity={2} distance={30} color="#ffaa44" />
+        <pointLight position={[24, 8, 8]} intensity={2} distance={30} color="#ffaa44" />
+        <pointLight position={[16, 8, 24]} intensity={2} distance={30} color="#ffaa44" />
+
+        {/* Subtle rim light for depth */}
+        <directionalLight
+          position={[-10, 5, -10]}
+          intensity={0.3}
+          color="#4488ff"
+        />
+
+        {/* Fog for atmosphere - lighter and further */}
+        <fog attach="fog" args={['#1a1a1a', 30, 80]} />
 
         {/* Scene content */}
         <Suspense fallback={null}>

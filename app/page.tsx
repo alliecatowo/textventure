@@ -40,13 +40,13 @@ export default function Home() {
       {/* Command Input */}
       <TextInput />
 
-      {/* Title/Instructions */}
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-        <h1 className="text-6xl font-bold text-green-400/20 font-mono tracking-wider">
+      {/* Title/Instructions - less obtrusive */}
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none opacity-30 hover:opacity-0 transition-opacity duration-500">
+        <h1 className="text-6xl font-bold text-green-400/10 font-mono tracking-wider">
           TEXTVENTURE
         </h1>
-        <p className="text-green-400/20 font-mono text-sm mt-2">
-          Type commands below to explore the dungeon
+        <p className="text-green-400/10 font-mono text-xs mt-2">
+          Type commands below
         </p>
       </div>
     </main>
