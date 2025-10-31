@@ -39,6 +39,9 @@ export function Room({ room }: RoomProps) {
           else if (tileX === roomBounds.maxX) wallRotation = -Math.PI / 2; // Right wall
         }
 
+        // Skip empty tiles
+        if (tile.type === 'empty') return null;
+
         return (
           <group key={`tile-${index}`} position={[worldX, 0, worldZ]}>
             {/* Floor tile */}
@@ -98,13 +101,7 @@ export function Room({ room }: RoomProps) {
             {/* Door - varied types */}
             {tile.type === 'door' && (
               <Model
-                path={
-                  tile.doorType === 'gate'
-                    ? '/models/Modular Dungeons Pack-glb/Gate.glb'
-                    : tile.doorType === 'double'
-                    ? '/models/Modular Dungeons Pack-glb/Door.glb'
-                    : '/models/Modular Dungeons Pack-glb/Arch Door.glb'
-                }
+                path="/models/Modular Dungeons Pack-glb/Arch Door.glb"
                 scale={TILE_SIZE}
                 rotation={[0, wallRotation, 0]}
               />

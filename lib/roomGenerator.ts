@@ -53,6 +53,71 @@ export interface TileData {
   hasStairs?: boolean; // Special floor tile with stairs
 }
 
+// Room shape templates
+type RoomShape = 'rectangle' | 'L-shape' | 'T-shape' | 'cross' | 'circular' | 'hexagon';
+
+function getRoomShape(seed: number): RoomShape {
+  const noise = Math.abs(getNoise(seed, seed * 1.5, seed * 2));
+  // More balanced distribution
+  if (noise < 0.5) return 'rectangle';
+  if (noise < 0.65) return 'L-shape';
+  if (noise < 0.75) return 'T-shape';
+  if (noise < 0.85) return 'circular';
+  if (noise < 0.95) return 'cross';
+  return 'hexagon';
+}
+
+// Check if a tile should be floor based on room shape
+function isFloorTile(x: number, z: number, width: number, depth: number, shape: RoomShape, seed: number): boolean {
+  const centerX = width / 2;
+  const centerZ = depth / 2;
+  const dx = x - centerX;
+  const dz = z - centerZ;
+  const distFromCenter = Math.sqrt(dx * dx + dz * dz);
+
+  switch (shape) {
+    case 'rectangle':
+      return true; // All tiles within bounds are floor
+
+    case 'L-shape':
+      // Cut out top-right or bottom-left corner (deterministic)
+      const cutCorner = getNoise(seed * 1.1, seed * 1.2, seed * 1.3) > 0;
+      if (cutCorner) {
+        return !(x > width * 0.6 && z < depth * 0.4);
+      } else {
+        return !(x < width * 0.4 && z > depth * 0.6);
+      }
+
+    case 'T-shape':
+      // Cut out two bottom corners
+      return !(
+        (x < width * 0.3 && z > depth * 0.6) ||
+        (x > width * 0.7 && z > depth * 0.6)
+      );
+
+    case 'cross':
+      // Four corridors meeting in center
+      const isHorizontalCorridor = Math.abs(dz) < depth * 0.25;
+      const isVerticalCorridor = Math.abs(dx) < width * 0.25;
+      return isHorizontalCorridor || isVerticalCorridor;
+
+    case 'circular':
+      // Circular room
+      const radius = Math.min(width, depth) * 0.45;
+      return distFromCenter < radius;
+
+    case 'hexagon':
+      // Approximate hexagon
+      const hexRadius = Math.min(width, depth) * 0.45;
+      const angle = Math.atan2(dz, dx);
+      const hexDist = hexRadius / Math.cos((angle % (Math.PI / 3)) - Math.PI / 6);
+      return distFromCenter < hexDist * 0.9;
+
+    default:
+      return true;
+  }
+}
+
 // World map to track generated rooms
 interface WorldMap {
   [key: string]: Room; // key is "x,y,z"
@@ -78,21 +143,39 @@ function roomKey(x: number, y: number, z: number): string {
 function getRoomType(x: number, y: number, z: number): Room['type'] {
   const noise = getOctaveNoise(x * 0.1, y * 0.1, z * 0.1, 3);
 
-  if (noise < -0.3) return 'combat';
-  if (noise < 0) return 'treasure';
-  if (noise < 0.3) return 'empty';
-  if (noise < 0.5) return 'merchant';
-  return 'event';
+  // More balanced distribution: combat most common, treasure rare
+  if (noise < -0.2) return 'combat';
+  if (noise < 0.2) return 'empty';
+  if (noise < 0.4) return 'combat'; // More combat rooms
+  if (noise < 0.55) return 'event';
+  if (noise < 0.65) return 'treasure'; // Treasure is rare
+  if (noise < 0.8) return 'empty';
+  if (noise < 0.9) return 'merchant';
+  return 'combat'; // Default to combat
 }
 
 // Generate tile grid for a room
-function generateTiles(roomX: number, roomY: number, roomZ: number, width: number, depth: number): TileData[] {
+function generateTiles(
+  roomX: number,
+  roomY: number,
+  roomZ: number,
+  width: number,
+  depth: number,
+  doors: { left: boolean; right: boolean; forward: boolean; back: boolean }
+): TileData[] {
   const tiles: TileData[] = [];
+
+  // Determine room shape based on seed
+  const shapeSeed = worldSeed + roomX * 777 + roomY * 888 + roomZ * 999;
+  const roomShape = getRoomShape(shapeSeed);
 
   for (let x = 0; x < width; x++) {
     for (let z = 0; z < depth; z++) {
       const worldX = roomX * width + x;
       const worldZ = roomZ * depth + z;
+
+      // Check if this tile is part of the room shape
+      const isInRoomShape = isFloorTile(x, z, width, depth, roomShape, shapeSeed);
 
       // Use noise to determine if it's a wall or floor
       const noise = getNoise(worldX * 0.3, roomY * 0.3, worldZ * 0.3);
@@ -106,22 +189,30 @@ function generateTiles(roomX: number, roomY: number, roomZ: number, width: numbe
       let doorType: TileData['doorType'] | undefined;
       let hasStairs = false;
 
-      if (isEdge) {
-        // Check if this edge tile should be a door
-        const isDoorSpot =
-          (x === Math.floor(width / 2) && z === 0) || // back door (entrance)
-          (x === Math.floor(width / 2) && z === depth - 1) || // forward door
-          (x === 0 && z === Math.floor(depth / 2)) || // left door
-          (x === width - 1 && z === Math.floor(depth / 2)); // right door
+      // Check if adjacent to empty space (for interior walls in shaped rooms)
+      const hasEmptyNeighbor =
+        !isFloorTile(x - 1, z, width, depth, roomShape, shapeSeed) ||
+        !isFloorTile(x + 1, z, width, depth, roomShape, shapeSeed) ||
+        !isFloorTile(x, z - 1, width, depth, roomShape, shapeSeed) ||
+        !isFloorTile(x, z + 1, width, depth, roomShape, shapeSeed);
+
+      // If tile is outside room shape, mark as empty
+      if (!isInRoomShape) {
+        type = 'empty';
+      } else if (isEdge || (hasEmptyNeighbor && isInRoomShape)) {
+        // Check if this edge tile should be a door (AND if that door is enabled)
+        const isBackDoor = x === Math.floor(width / 2) && z === 0 && doors.back;
+        const isForwardDoor = x === Math.floor(width / 2) && z === depth - 1 && doors.forward;
+        const isLeftDoor = x === 0 && z === Math.floor(depth / 2) && doors.left;
+        const isRightDoor = x === width - 1 && z === Math.floor(depth / 2) && doors.right;
+
+        const isDoorSpot = isBackDoor || isForwardDoor || isLeftDoor || isRightDoor;
 
         type = isDoorSpot ? 'door' : 'wall';
 
         if (type === 'door') {
-          // Varied door types based on noise
-          const doorNoise = Math.abs(getNoise(worldX * 0.7, roomY * 0.7, worldZ * 0.7));
-          if (doorNoise > 0.7) doorType = 'gate';
-          else if (doorNoise > 0.4) doorType = 'double';
-          else doorType = 'arch';
+          // All doors use arch for now (only model available)
+          doorType = 'arch';
         } else {
           // Varied wall heights (2-4 segments)
           const heightNoise = Math.abs(getNoise(worldX * 0.5, roomY * 0.5, worldZ * 0.5));
@@ -267,16 +358,17 @@ export function generateRoom(
   // Get room dimensions
   const { width, depth } = getRoomDimensions(roomType, seed);
 
-  // Generate tiles
-  const tiles = generateTiles(x, y, z, width, depth);
-
   // Determine door positions based on neighboring rooms
+  // Use different thresholds for more variety
   const doors = {
-    left: getNoise(x - 1, y, z) > -0.5,
-    right: getNoise(x + 1, y, z) > -0.5,
-    forward: getNoise(x, y, z + 1) > -0.5,
+    left: getNoise(x - 1, y, z) > -0.2,
+    right: getNoise(x + 1, y, z) > -0.2,
+    forward: getNoise(x, y, z + 1) > 0.1, // Forward is less common - creates dead ends
     back: true, // Always allow going back
   };
+
+  // Generate tiles with door configuration
+  const tiles = generateTiles(x, y, z, width, depth, doors);
 
   // Generate entities based on room type
   const entities: RoomEntity[] = [
@@ -350,5 +442,5 @@ export function getRoomTiles(room: Room): TileData[] {
   const [x, y, z] = room.id.split(',').map(Number);
   const seed = worldSeed + x * 1000 + y * 100000 + z * 10;
   const { width, depth } = getRoomDimensions(room.type, seed);
-  return generateTiles(x, y, z, width, depth);
+  return generateTiles(x, y, z, width, depth, room.doors);
 }
