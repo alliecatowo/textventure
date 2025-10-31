@@ -73,9 +73,10 @@ export function Scene() {
           <Room room={currentRoom} />
 
           {/* Entities in room */}
-          {currentRoom.entities.map((entity) => (
-            <Entity key={entity.id} entity={entity} />
-          ))}
+          {currentRoom.entities.map((entity) => {
+            console.log('Rendering entity:', entity.type, entity.id, entity.data);
+            return <Entity key={entity.id} entity={entity} />;
+          })}
 
           {/* Player hands with equipped item */}
           <Player />

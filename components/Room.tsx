@@ -30,13 +30,25 @@ export function Room({ room }: RoomProps) {
         const worldX = tileX * TILE_SIZE;
         const worldZ = tileZ * TILE_SIZE;
 
-        // Calculate wall rotation based on position
+        // Calculate wall rotation based on neighboring tiles
         let wallRotation = 0;
         if (tile.type === 'wall' || tile.type === 'door') {
-          if (tileZ === roomBounds.minZ) wallRotation = Math.PI; // Back wall
-          else if (tileZ === roomBounds.maxZ) wallRotation = 0; // Front wall
-          else if (tileX === roomBounds.minX) wallRotation = Math.PI / 2; // Left wall
-          else if (tileX === roomBounds.maxX) wallRotation = -Math.PI / 2; // Right wall
+          // Check neighbors to determine wall orientation
+          const leftTile = tiles.find(t => t.position[0] === tileX - 1 && t.position[1] === tileZ);
+          const rightTile = tiles.find(t => t.position[0] === tileX + 1 && t.position[1] === tileZ);
+          const backTile = tiles.find(t => t.position[0] === tileX && t.position[1] === tileZ - 1);
+          const forwardTile = tiles.find(t => t.position[0] === tileX && t.position[1] === tileZ + 1);
+
+          const hasFloorLeft = leftTile && leftTile.type === 'floor';
+          const hasFloorRight = rightTile && rightTile.type === 'floor';
+          const hasFloorBack = backTile && backTile.type === 'floor';
+          const hasFloorForward = forwardTile && forwardTile.type === 'floor';
+
+          // Wall faces toward the floor
+          if (hasFloorBack) wallRotation = Math.PI; // Face back (into room)
+          else if (hasFloorForward) wallRotation = 0; // Face forward (into room)
+          else if (hasFloorLeft) wallRotation = Math.PI / 2; // Face left (into room)
+          else if (hasFloorRight) wallRotation = -Math.PI / 2; // Face right (into room)
         }
 
         // Skip empty tiles
@@ -52,18 +64,22 @@ export function Room({ room }: RoomProps) {
               />
             )}
 
-            {/* Stairs tile */}
+            {/* Stairs tile - use stacked floor tiles for now (no Stairs model available) */}
             {tile.type === 'floor' && tile.hasStairs && (
               <>
                 <Model
                   path="/models/Modular Dungeons Pack-glb/Floor Tile.glb"
                   scale={TILE_SIZE}
                 />
-                <Model
-                  path="/models/Modular Dungeons Pack-glb/Stairs.glb"
-                  scale={TILE_SIZE}
-                  rotation={[0, Math.random() * Math.PI * 2, 0]}
-                />
+                {/* Stack floor tiles to create stairs effect */}
+                {[0.3, 0.6, 0.9].map((height, i) => (
+                  <Model
+                    key={`stair-${i}`}
+                    path="/models/Modular Dungeons Pack-glb/Floor Tile.glb"
+                    scale={TILE_SIZE * 0.8}
+                    position={[0, height, i * 0.4 - 0.4]}
+                  />
+                ))}
               </>
             )}
 
