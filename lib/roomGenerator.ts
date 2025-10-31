@@ -48,6 +48,9 @@ export interface TileData {
   type: 'floor' | 'wall' | 'door' | 'empty';
   position: [number, number];
   decoration?: 'torch' | 'barrel' | 'crate' | 'column' | 'banner';
+  wallHeight?: number; // 1-3 for varied wall heights
+  doorType?: 'arch' | 'double' | 'gate'; // Different door types
+  hasStairs?: boolean; // Special floor tile with stairs
 }
 
 // World map to track generated rooms
@@ -99,6 +102,9 @@ function generateTiles(roomX: number, roomY: number, roomZ: number, width: numbe
 
       let type: TileData['type'] = 'floor';
       let decoration: TileData['decoration'] | undefined;
+      let wallHeight: number | undefined;
+      let doorType: TileData['doorType'] | undefined;
+      let hasStairs = false;
 
       if (isEdge) {
         // Check if this edge tile should be a door
@@ -110,15 +116,32 @@ function generateTiles(roomX: number, roomY: number, roomZ: number, width: numbe
 
         type = isDoorSpot ? 'door' : 'wall';
 
-        // Add decorations to walls
-        if (type === 'wall' && noise > 0.3) {
-          const decorRoll = Math.abs(noise);
-          if (decorRoll > 0.8) decoration = 'torch';
-          else if (decorRoll > 0.6) decoration = 'banner';
+        if (type === 'door') {
+          // Varied door types based on noise
+          const doorNoise = Math.abs(getNoise(worldX * 0.7, roomY * 0.7, worldZ * 0.7));
+          if (doorNoise > 0.7) doorType = 'gate';
+          else if (doorNoise > 0.4) doorType = 'double';
+          else doorType = 'arch';
+        } else {
+          // Varied wall heights (2-4 segments)
+          const heightNoise = Math.abs(getNoise(worldX * 0.5, roomY * 0.5, worldZ * 0.5));
+          wallHeight = Math.floor(heightNoise * 2) + 2; // 2-3 segments
+
+          // Add decorations to walls
+          if (noise > 0.3) {
+            const decorRoll = Math.abs(noise);
+            if (decorRoll > 0.8) decoration = 'torch';
+            else if (decorRoll > 0.6) decoration = 'banner';
+          }
         }
       } else {
-        // Floor tiles can have decorations
-        if (noise > 0.4 && Math.abs(noise) < 0.6) {
+        // Floor tiles can have decorations or stairs
+        const floorNoise = Math.abs(getNoise(worldX * 0.6, roomY * 0.6, worldZ * 0.6));
+
+        // Occasionally add stairs (rare)
+        if (floorNoise > 0.85 && z > depth / 3 && z < depth * 2 / 3) {
+          hasStairs = true;
+        } else if (noise > 0.4 && Math.abs(noise) < 0.6) {
           const decorRoll = Math.abs(noise);
           if (decorRoll > 0.55) decoration = 'barrel';
           else if (decorRoll > 0.5) decoration = 'crate';
@@ -130,6 +153,9 @@ function generateTiles(roomX: number, roomY: number, roomZ: number, width: numbe
         type,
         position: [x, z],
         decoration,
+        wallHeight,
+        doorType,
+        hasStairs,
       });
     }
   }

@@ -1,16 +1,30 @@
 'use client';
 
 import { Canvas } from '@react-three/fiber';
-import { Suspense } from 'react';
+import { Suspense, useMemo } from 'react';
 import { Room } from './Room';
 import { Entity } from './Entity';
 import { Player } from './Player';
 import { CameraController } from './CameraController';
 import { useGameStore } from '@/lib/store';
+import { getRoomTiles, TILE_SIZE } from '@/lib/roomGenerator';
 import * as THREE from 'three';
 
 export function Scene() {
   const currentRoom = useGameStore((state) => state.currentRoom);
+
+  // Calculate spawn position based on room dimensions
+  const spawnPosition = useMemo(() => {
+    const tiles = getRoomTiles(currentRoom);
+    const roomTiles = tiles.filter(t => t.type === 'wall' || t.type === 'door');
+    const minX = Math.min(...roomTiles.map(t => t.position[0]));
+    const maxX = Math.max(...roomTiles.map(t => t.position[0]));
+    const minZ = Math.min(...roomTiles.map(t => t.position[1]));
+
+    // Spawn at horizontal center of room, near the back wall (entrance at minZ)
+    const centerX = (minX + maxX) / 2;
+    return [centerX * TILE_SIZE, 1.6, (minZ + 2) * TILE_SIZE]; // 2 tiles into room from entrance
+  }, [currentRoom]);
 
   return (
     <div className="w-full h-screen">
@@ -19,7 +33,8 @@ export function Scene() {
         gl={{ antialias: true }}
         dpr={[1, 2]}
         camera={{
-          position: [16, 1.6, 2],  // Eye level (1.6m), looking INTO the room from near edge
+          position: spawnPosition,  // Dynamically calculated spawn
+          rotation: [0, 0, 0],  // Looking straight forward (no rotation)
           fov: 90,  // Wide FOV for first-person
           near: 0.1,
           far: 100

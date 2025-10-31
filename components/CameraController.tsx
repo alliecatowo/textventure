@@ -6,38 +6,93 @@ import * as THREE from 'three';
 
 export function CameraController() {
   const { camera, gl } = useThree();
-  const rotationX = useRef(0);
-  const rotationY = useRef(0);
-  const targetRotationX = useRef(0);
-  const targetRotationY = useRef(0);
+  const cameraRig = useRef<THREE.Group | null>(null);
+
+  // Use quaternions for smooth, unlimited rotation
+  const yaw = useRef(0);
+  const pitch = useRef(0);
+  const isLocked = useRef(false);
 
   useEffect(() => {
+    // Create camera rig (parent group for yaw rotation)
+    if (!cameraRig.current) {
+      cameraRig.current = new THREE.Group();
+      const originalPosition = camera.position.clone();
+      camera.position.set(0, 0, 0);
+      cameraRig.current.position.copy(originalPosition);
+      cameraRig.current.add(camera);
+    }
+
     const canvas = gl.domElement;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      // Only rotate when mouse is in the middle 80% of screen
-      const rect = canvas.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-      // Limited look around: ±45 degrees horizontal, ±30 degrees vertical
-      targetRotationY.current = x * Math.PI / 4; // ±45 degrees
-      targetRotationX.current = y * Math.PI / 6; // ±30 degrees
+    // Pointer lock for proper FPS controls
+    const handlePointerLockChange = () => {
+      isLocked.current = document.pointerLockElement === canvas;
     };
 
-    canvas.addEventListener('mousemove', handleMouseMove);
-    return () => canvas.removeEventListener('mousemove', handleMouseMove);
-  }, [gl]);
+    const handleMouseDown = () => {
+      if (!isLocked.current) {
+        canvas.requestPointerLock();
+      }
+    };
 
-  useFrame(() => {
-    // Smooth camera rotation
-    rotationX.current += (targetRotationX.current - rotationX.current) * 0.1;
-    rotationY.current += (targetRotationY.current - rotationY.current) * 0.1;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Press '/' to exit mouse look and focus text input
+      if (e.key === '/') {
+        e.preventDefault();
+        if (isLocked.current) {
+          document.exitPointerLock();
+        }
+        // Focus text input
+        const textInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+        if (textInput) {
+          textInput.focus();
+        }
+      }
+    };
 
-    // Apply rotation to camera
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isLocked.current) return;
+
+      const sensitivity = 0.002;
+
+      // Unlimited horizontal rotation (yaw)
+      yaw.current -= e.movementX * sensitivity;
+
+      // Vertical rotation (pitch) clamped to prevent flipping
+      pitch.current -= e.movementY * sensitivity;
+      pitch.current = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch.current));
+    };
+
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
+    document.addEventListener('keydown', handleKeyDown);
+    canvas.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
+      document.removeEventListener('keydown', handleKeyDown);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [gl, camera]);
+
+  useFrame(({ scene }) => {
+    if (!cameraRig.current) return;
+
+    // Ensure rig is in scene
+    if (!cameraRig.current.parent) {
+      scene.add(cameraRig.current);
+    }
+
+    // Apply yaw to camera rig (unlimited horizontal rotation)
+    cameraRig.current.rotation.y = yaw.current;
+
+    // Apply pitch to camera with proper rotation order
     camera.rotation.order = 'YXZ';
-    camera.rotation.y = rotationY.current;
-    camera.rotation.x = rotationX.current;
+    camera.rotation.x = pitch.current;
+    camera.rotation.y = 0;
+    camera.rotation.z = 0; // No roll
   });
 
   return null;
