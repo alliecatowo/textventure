@@ -33,7 +33,7 @@ export function Room({ room }: RoomProps) {
             {tile.type === 'wall' && (
               <>
                 <Model
-                  path="/models/Modular Dungeons Pack-glb/Wall.glb"
+                  path="/models/Modular Dungeons Pack-glb/Wall Modular.glb"
                   scale={TILE_SIZE}
                 />
                 {/* Add torch decoration */}

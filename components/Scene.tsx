@@ -17,35 +17,36 @@ export function Scene() {
         shadows
         gl={{ antialias: true }}
         dpr={[1, 2]}
-        camera={{ position: [16, 12, -5], fov: 60, near: 0.1, far: 1000 }}
+        camera={{
+          position: [16, 1.6, 2],  // Eye level (1.6m), looking INTO the room from near edge
+          fov: 90,  // Wide FOV for first-person
+          near: 0.1,
+          far: 100
+        }}
       >
 
-        {/* Enhanced lighting for better visibility */}
-        <ambientLight intensity={0.6} />
+        {/* Much brighter ambient light */}
+        <ambientLight intensity={0.8} />
 
-        {/* Main directional light from above */}
-        <directionalLight
-          position={[20, 20, 10]}
-          intensity={1.5}
-          castShadow
-          shadow-mapSize={[2048, 2048]}
-          color="#ffffff"
+        {/* Bright global directional light */}
+        <directionalLight position={[10, 10, 5]} intensity={1.5} color="#ffffff" />
+
+        {/* Player's bright torch light */}
+        <pointLight
+          position={[16, 1.6, 3]}
+          intensity={8}
+          distance={30}
+          color="#ffaa44"
+          decay={1}
         />
 
-        {/* Warm torch-like point lights around the room */}
-        <pointLight position={[8, 8, 8]} intensity={2} distance={30} color="#ffaa44" />
-        <pointLight position={[24, 8, 8]} intensity={2} distance={30} color="#ffaa44" />
-        <pointLight position={[16, 8, 24]} intensity={2} distance={30} color="#ffaa44" />
+        {/* Very bright wall torches */}
+        <pointLight position={[8, 2.5, 16]} intensity={5} distance={25} color="#ffaa44" decay={1} castShadow />
+        <pointLight position={[24, 2.5, 16]} intensity={5} distance={25} color="#ffaa44" decay={1} castShadow />
+        <pointLight position={[16, 2.5, 28]} intensity={5} distance={25} color="#ffaa44" decay={1} />
 
-        {/* Subtle rim light for depth */}
-        <directionalLight
-          position={[-10, 5, -10]}
-          intensity={0.3}
-          color="#4488ff"
-        />
-
-        {/* Fog for atmosphere - lighter and further */}
-        <fog attach="fog" args={['#1a1a1a', 30, 80]} />
+        {/* Lighter fog */}
+        <fog attach="fog" args={['#1a1a1a', 15, 50]} />
 
         {/* Scene content */}
         <Suspense fallback={null}>

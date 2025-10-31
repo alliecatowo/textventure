@@ -52,6 +52,7 @@ export function Minimap() {
         {currentRoom.doors.left && <div>← Left</div>}
         {currentRoom.doors.right && <div>→ Right</div>}
         {currentRoom.doors.forward && <div>↑ Forward</div>}
+        {currentRoom.doors.back && <div>↓ Back</div>}
       </div>
     </div>
   );

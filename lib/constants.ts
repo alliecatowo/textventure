@@ -147,7 +147,7 @@ export const MONSTERS: Record<string, Omit<Monster, 'id' | 'hp' | 'maxHp'>> = {
 // Dungeon piece models
 export const DUNGEON_PIECES = {
   floor: '/models/Modular Dungeons Pack-glb/Floor Tile.glb',
-  wall: '/models/Modular Dungeons Pack-glb/Wall.glb',
+  wall: '/models/Modular Dungeons Pack-glb/Wall Modular.glb',
   door: '/models/Modular Dungeons Pack-glb/Arch Door.glb',
   arch: '/models/Modular Dungeons Pack-glb/Arch.glb',
   column: '/models/Modular Dungeons Pack-glb/Column.glb',
@@ -155,6 +155,7 @@ export const DUNGEON_PIECES = {
   chestWithGold: '/models/Modular Dungeons Pack-glb/Chest with Gold.glb',
   torch: '/models/Modular Dungeons Pack-glb/Torch.glb',
   banner: '/models/Modular Dungeons Pack-glb/Banner.glb',
+  bannerWall: '/models/Modular Dungeons Pack-glb/Banner Wall.glb',
   barrel: '/models/Modular Dungeons Pack-glb/Barrel.glb',
   crate: '/models/Modular Dungeons Pack-glb/Crate.glb',
 };

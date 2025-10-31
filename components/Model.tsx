@@ -61,7 +61,7 @@ export function Model({ path, position = [0, 0, 0], rotation = [0, 0, 0], scale 
 export function preloadModels() {
   const models = [
     '/models/Modular Dungeons Pack-glb/Floor Tile.glb',
-    '/models/Modular Dungeons Pack-glb/Wall.glb',
+    '/models/Modular Dungeons Pack-glb/Wall Modular.glb',
     '/models/Modular Dungeons Pack-glb/Arch Door.glb',
     '/models/Modular Dungeons Pack-glb/Torch.glb',
     '/models/Modular Dungeons Pack-glb/Chest.glb',

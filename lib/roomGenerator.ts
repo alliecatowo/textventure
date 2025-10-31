@@ -204,6 +204,7 @@ export function generateRoom(
     left: getNoise(x - 1, y, z) > -0.5,
     right: getNoise(x + 1, y, z) > -0.5,
     forward: getNoise(x, y, z + 1) > -0.5,
+    back: true, // Always allow going back
   };
 
   // Generate entities based on room type
@@ -240,7 +241,7 @@ export function generateRoom(
 // Get neighboring room
 export function getAdjacentRoom(
   currentRoom: Room,
-  direction: 'left' | 'right' | 'forward',
+  direction: 'left' | 'right' | 'forward' | 'back',
   playerLevel: number = 1
 ): Room | null {
   // Parse current room coordinates from ID
@@ -259,6 +260,9 @@ export function getAdjacentRoom(
       break;
     case 'forward':
       newZ += 1;
+      break;
+    case 'back':
+      newZ -= 1;
       break;
   }
 

@@ -3,7 +3,7 @@ import { GameState, Monster } from '@/types/game';
 export interface CommandIntent {
   action: 'attack' | 'move' | 'interact' | 'inventory' | 'examine' | 'help' | 'unknown';
   target?: string;
-  direction?: 'left' | 'right' | 'forward';
+  direction?: 'left' | 'right' | 'forward' | 'back';
   item?: string;
 }
 
@@ -22,11 +22,12 @@ export function parseCommand(command: string, gameState: GameState): CommandInte
   }
 
   // Movement commands
-  if (lower.match(/\b(go|move|enter|walk|head)\b.*(left|right|forward|ahead)/)) {
-    const dirMatch = lower.match(/\b(left|right|forward|ahead)\b/);
+  if (lower.match(/\b(go|move|enter|walk|head)\b.*(left|right|forward|ahead|back|backward|behind)/)) {
+    const dirMatch = lower.match(/\b(left|right|forward|ahead|back|backward|behind)\b/);
+    const dir = dirMatch?.[1];
     return {
       action: 'move',
-      direction: dirMatch?.[1] === 'ahead' ? 'forward' : (dirMatch?.[1] as any),
+      direction: (dir === 'ahead' ? 'forward' : dir === 'backward' || dir === 'behind' ? 'back' : dir) as any,
     };
   }
 

@@ -47,6 +47,7 @@ export interface Room {
     left?: boolean;
     right?: boolean;
     forward?: boolean;
+    back?: boolean;
   };
   entities: RoomEntity[];
   discovered: boolean;
