@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.0.9",
+    "@ai-sdk/google": "^4.0.85",
     "@react-three/fiber": "^9.8.1",
     "ai": "^4.0.38",
     "next": "^15.0.3",
